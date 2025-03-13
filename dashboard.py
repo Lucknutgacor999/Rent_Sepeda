@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # Load data
-df = pd.read_csv("C:\\Users\\acer\\Submission\\dashboard\\data_clean.csv")
+df = pd.read_csv("data_clean.csv")
 
 # Sidebar
 st.sidebar.title("Bicycle Rent")
