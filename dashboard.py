@@ -7,7 +7,7 @@ df = pd.read_csv("data_clean.csv")
 
 # Sidebar
 st.sidebar.title("Bicycle Rent")
-st.sidebar.image("img/logo.jpg", width=300)
+st.sidebar.image("logo.jpg", width=300)
 
 # Title
 st.title("📊 Dashboard Penyewaan Sepeda")
