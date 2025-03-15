@@ -1,82 +1,98 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import plotly.express as px
-import plotly.graph_objects as go
 
-# Konfigurasi halaman
-st.set_page_config(page_title="Dashboard Penyewaan Sepeda", layout="wide")
-st.markdown("<h1 style='text-align: center; color: #2E8B57;'>🚴 Dashboard Penyewaan Sepeda 🚴</h1>", unsafe_allow_html=True)
+# Load data
+data = pd.read_csv("main_data.csv")
 
-# Load dataset
-data = pd.read_csv("data_clean.csv")
+# Convert date column to datetime
 data["dteday"] = pd.to_datetime(data["dteday"])
-data["year"] = data["dteday"].dt.year
-data["month"] = data["dteday"].dt.month
 
-# Sidebar
+# Extract weekday names
+data["weekday"] = data["dteday"].dt.day_name()
+
+# Sidebar filters
 st.sidebar.image("logo.jpg", width=250)
-st.sidebar.header("Filter Data")
-selected_year = st.sidebar.selectbox("Pilih Tahun", options=sorted(data["year"].unique()))
-data_filtered = data[data["year"] == selected_year]
+st.sidebar.title("Bike Rental Analysis")
+st.sidebar.header("🔍 Filter Data")
+st.sidebar.markdown("Gunakan filter ini untuk menyesuaikan tampilan data.")
+selected_year = st.sidebar.selectbox("📅 Pilih Tahun:", sorted(data["year"].unique()))
+selected_season = st.sidebar.selectbox("🌦 Pilih Musim:", data["season"].unique())
+selected_weather = st.sidebar.selectbox("☁ Pilih Cuaca:", data["weathersit"].unique())
 
-# Pilihan Bulan
-dict_bulan = {
-    1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
-    7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
-}
-selected_month = st.sidebar.selectbox("Pilih Bulan", options=[dict_bulan[m] for m in sorted(data_filtered["month"].unique())])
-selected_month_num = {v: k for k, v in dict_bulan.items()}[selected_month]
-data_filtered = data_filtered[data_filtered["month"] == selected_month_num]
+data_filtered = data[(data["year"] == selected_year) & (data["season"] == selected_season) & (data["weathersit"] == selected_weather)]
 
-# Visualisasi 1: Penyewaan per Hari
-st.subheader("📅 Jumlah Penyewaan Sepeda per Hari")
-fig = px.line(data_filtered, x="dteday", y="total_rentals", labels={"dteday": "Tanggal", "total_rentals": "Jumlah Penyewa"})
-st.plotly_chart(fig, use_container_width=True)
+# Dashboard title
+st.markdown("# 🚲 Dashboard Penyewaan Sepeda")
+st.markdown("**Analisis tren penyewaan sepeda berdasarkan berbagai faktor.**")
+# Total Users Metrics
+st.subheader("📊 Total Penyewaan Sepeda")
 
-# Visualisasi soal 1: Penyewaan per Bulan
-st.subheader("📊 Jumlah Penyewa Sepeda per Bulan")
-monthly_rentals = data.groupby("month")["total_rentals"].sum().reset_index()
-monthly_rentals["Month"] = monthly_rentals["month"].map(dict_bulan)
-fig = px.bar(monthly_rentals, x="Month", y="total_rentals", labels={"total_rentals": "Jumlah Penyewa"}, color="total_rentals", color_continuous_scale="blues")
-st.plotly_chart(fig, use_container_width=True)
+# Hitung total casual dan registered users
+total_casual = data["casual"].sum()
+total_registered = data["registered"].sum()
+total_users = total_casual + total_registered
 
-# Visualisasi soal 2: Perbedaan Jenis Pengguna
-st.subheader("👥 Perbandingan Pengguna Kasual dan Terdaftar")
-data_pertahun = data.groupby("year")[["casual", "registered"]].sum().reset_index()
-data_pertahun_melt = data_pertahun.melt(id_vars="year", var_name="Tipe Pengguna", value_name="Jumlah Penyewa")
-fig = px.bar(data_pertahun_melt, x="year", y="Jumlah Penyewa", color="Tipe Pengguna", barmode="group")
-st.plotly_chart(fig, use_container_width=True)
+# Tampilkan dalam 3 kolom
+col1, col2, col3 = st.columns(3)
 
-# Visualisasi soal 3: Rata-rata penyewaan sepeda per musim
+with col1:
+    st.metric("👤 Total Casual Renters", value=f'{total_casual:,}', delta_color="inverse")
 
-total_kasual_permusim = data.groupby("season")["casual"].mean().reset_index()
-total_terdaftar_permusim = data.groupby("season")["registered"].mean().reset_index()
+with col2:
+    st.metric("🧑‍💼 Total Registered Renters", value=f'{total_registered:,}', delta_color="inverse")
 
-data_permusim = pd.merge(
-    left=total_kasual_permusim,
-    right=total_terdaftar_permusim,
-    how="left",
-    on="season"
-)
-data_permusim.rename(columns={"casual": "avg_casual", "registered": "avg_registered"}, inplace=True)
+with col3:
+    st.metric("🚴‍♂️ Total Renters", value=f'{total_users:,}', delta_color="inverse")
 
-st.subheader("🌦️ Rata-rata Penyewaan Sepeda per Musim")
-fig, ax = plt.subplots()
-colors = plt.get_cmap("Set1").colors
-season_labels = ["Spring", "Summer", "Fall", "Winter"]
-seasons = range(len(data_permusim))
 
-ax.bar(seasons, data_permusim["avg_casual"], width=0.4, label="Kasual", color=colors[0], alpha=0.7)
-ax.bar([s + 0.4 for s in seasons], data_permusim["avg_registered"], width=0.4, label="Terdaftar",color=colors[1], alpha=0.7)
+# Warna seragam untuk semua chart
+color_palette = "#1f77b4"
 
-ax.set_xticks(seasons)
-ax.set_xticklabels(season_labels)
-ax.set_xlabel("Musim")
-ax.set_ylabel("Rata-rata Penyewa")
-ax.set_title("Rata-rata Penyewa Kasual dan Terdaftar per Musim")
-ax.legend()
+# Chart total penyewa per hari (Filtered)
+st.subheader("📆 Total Penyewa per Hari")
+data_daily = data_filtered.groupby("weekday")["total_rentals"].sum().reset_index()
+ordered_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+data_daily["weekday"] = pd.Categorical(data_daily["weekday"], categories=ordered_days, ordered=True)
+data_daily = data_daily.sort_values("weekday")
+fig2 = px.bar(data_daily, x="weekday", y="total_rentals", title="Total Penyewa per Hari", template="seaborn", color_discrete_sequence=[color_palette])
+st.plotly_chart(fig2, use_container_width=True)
 
-st.pyplot(fig)
+# Chart penyewa per bulan (Tidak bisa difilter)
+st.subheader("📅 Penyewa per Bulan")
+data["month"] = data["dteday"].dt.month  # Pastikan 'month' berasal dari tanggal
+month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+data_monthly = data.groupby("month")["total_rentals"].sum().reindex(range(1, 13), fill_value=0).reset_index()
+data_monthly["month"] = data_monthly["month"].apply(lambda x: month_names[x-1])  # Konversi angka ke nama bulan
+fig1 = px.bar(data_monthly, x="month", y="total_rentals", title="Total Penyewa per Bulan", template="seaborn", color_discrete_sequence=[color_palette])
+st.plotly_chart(fig1, use_container_width=True)
 
+# Chart penyewa berdasarkan musim
+st.subheader("🍂 Penyewa berdasarkan Musim")
+fig3 = px.bar(data.groupby("season")["total_rentals"].sum().reset_index(), x="season", y="total_rentals", title="Total Penyewa Berdasarkan Musim", template="seaborn", color_discrete_sequence=[color_palette])
+st.plotly_chart(fig3, use_container_width=True)
+
+# Chart penyewa berdasarkan cuaca
+st.subheader("🌤 Penyewa berdasarkan Cuaca")
+fig4 = px.bar(data.groupby("weathersit")["total_rentals"].sum().reset_index(), x="weathersit", y="total_rentals", title="Total Penyewa Berdasarkan Cuaca", template="seaborn", color_discrete_sequence=[color_palette])
+st.plotly_chart(fig4, use_container_width=True)
+
+# Chart perbandingan penyewa casual dan registered per tahun
+st.subheader("👥 Perbandingan Penyewa Casual dan Registered per Tahun")
+data_grouped_year = data.groupby("year")[["casual", "registered"]].sum().reset_index()
+data_grouped_year["year"] = data_grouped_year["year"].astype(str)  # Ensure year is categorical for proper display
+fig5 = px.bar(data_grouped_year, x="year", y=["casual", "registered"], title="Perbandingan Penyewa per Tahun", barmode="group", template="seaborn", color_discrete_sequence=[color_palette, "#ff7f0e"])
+st.plotly_chart(fig5, use_container_width=True)
+
+# Chart bulan puncak penyewa registered dan casual
+st.subheader("📈 Bulan Puncak Penyewa Registered dan Casual")
+data_peak_month = data.groupby("month")[["casual", "registered"]].sum().reset_index()
+data_peak_month["month"] = data_peak_month["month"].apply(lambda x: month_names[x-1])
+fig6 = px.line(data_peak_month, x="month", y=["casual", "registered"], title="Tren Penyewa Registered dan Casual", markers=True, template="seaborn", color_discrete_sequence=[color_palette, "#ff7f0e"])
+st.plotly_chart(fig6, use_container_width=True)
+
+# Chart rata-rata penyewa casual dan registered setiap musim
+st.subheader("📊 Rata-rata Penyewa Casual dan Registered Setiap Musim")
+data_avg_season = data.groupby("season")[["casual", "registered"]].mean().reset_index()
+fig7 = px.bar(data_avg_season, x="season", y=["casual", "registered"], title="Rata-rata Penyewa Berdasarkan Musim", barmode="group", template="seaborn", color_discrete_sequence=[color_palette, "#ff7f0e"])
+st.plotly_chart(fig7, use_container_width=True)
