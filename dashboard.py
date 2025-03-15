@@ -26,7 +26,7 @@ st.title("Dashboard Penyewaan Sepeda")
 
 #Sidebar
 st.sidebar.title("Bicycle Rent")
-st.sidebar.image ("../img/logo.jpg", width=300)
+st.sidebar.image ("logo.jpg", width=300)
 st.sidebar.title("Filter Jumlah Penyewaan Per Hari")
 selected_year = st.sidebar.selectbox("Pilih Tahun", options=sorted(data["dteday"].dt.year.unique()))
 
