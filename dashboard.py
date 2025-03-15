@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.ticker as mticker
 
-
 # Load dataset
 data = pd.read_csv("data_clean.csv")
 
@@ -16,17 +15,35 @@ data["year"] = data["dteday"].dt.year
 data["month"] = data["dteday"].dt.month
 data["day"] = data["dteday"].dt.day
 
+# Dictionary mapping angka bulan ke nama bulan dalam bahasa Indonesia
+dict_bulan = {
+    1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+    7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+}
+
 # Title
 st.title("Dashboard Penyewaan Sepeda")
 
 #Sidebar
 st.sidebar.title("Bicycle Rent")
-st.sidebar.image ("logo.jpg", width=300)
-st.sidebar.title("Filter Data")
+st.sidebar.image ("../img/logo.jpg", width=300)
+st.sidebar.title("Filter Jumlah Penyewaan Per Hari")
 selected_year = st.sidebar.selectbox("Pilih Tahun", options=sorted(data["dteday"].dt.year.unique()))
 
-# Filter data berdasarkan tahun
+# Filter data berdasarkan tahun 
 data_filtered = data[data["dteday"].dt.year == selected_year]
+
+# Filter Bulan
+selected_month = st.sidebar.selectbox(
+    "Pilih Bulan",
+    options=[dict_bulan[m] for m in sorted(data_filtered["month"].unique())]
+)
+
+# Konversi nama bulan ke angka
+selected_month_num = {v: k for k, v in dict_bulan.items()}[selected_month]
+
+# Filter data berdasarkan bulan
+data_filtered = data_filtered[data_filtered["month"] == selected_month_num]
 
 # Visualisasi jumlah penyewa per hari
 st.subheader("Jumlah Penyewa Sepeda per Hari")
@@ -37,14 +54,25 @@ ax.set_ylabel("Jumlah Penyewa")
 st.pyplot(fig)
 
 # Visualisasi jumlah penyewa per bulan
-data_filtered["month"] = data_filtered["dteday"].dt.month
+dict_bulan = {
+    1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+    7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+}
+
 monthly_rentals = data_filtered.groupby("month")["total_rentals"].sum().reset_index()
+monthly_rentals["month_name"] = monthly_rentals["month"].map(dict_bulan)  # Ubah angka bulan ke nama bulan
+
+# Urutkan nama bulan sesuai urutan kalender
+monthly_rentals = data.groupby("month")["total_rentals"].sum().reset_index()
+monthly_rentals["month_name"] = monthly_rentals["month"].map(dict_bulan)
+monthly_rentals = monthly_rentals.sort_values(by="month")
 
 st.subheader("Jumlah Penyewa Sepeda per Bulan")
 fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(x=monthly_rentals["month"], y=monthly_rentals["total_rentals"], ax=ax, palette="Blues")
+sns.barplot(x=monthly_rentals["month_name"], y=monthly_rentals["total_rentals"], ax=ax, palette="Blues")
 ax.set_xlabel("Bulan")
 ax.set_ylabel("Jumlah Penyewa")
+ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
 st.pyplot(fig)
 
 # Visualisasi soal 1: Perbedaan jumlah penyewaan sepeda per tahun
