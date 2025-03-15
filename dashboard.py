@@ -16,7 +16,7 @@ data["year"] = data["dteday"].dt.year
 data["month"] = data["dteday"].dt.month
 
 # Sidebar
-st.sidebar.image("../img/logo.jpg", width=250)
+st.sidebar.image("logo.jpg", width=250)
 st.sidebar.header("Filter Data")
 selected_year = st.sidebar.selectbox("Pilih Tahun", options=sorted(data["year"].unique()))
 data_filtered = data[data["year"] == selected_year]
