@@ -6,7 +6,7 @@ import matplotlib.ticker as mticker
 
 
 # Load dataset
-data = pd.read_csv("./data_clean.csv")
+data = pd.read_csv("data_clean.csv")
 
 # Convert date column
 data["dteday"] = pd.to_datetime(data["dteday"])
@@ -21,7 +21,7 @@ st.title("Dashboard Penyewaan Sepeda")
 
 #Sidebar
 st.sidebar.title("Bicycle Rent")
-st.sidebar.image ("../img/logo.jpg", width=300)
+st.sidebar.image ("logo.jpg", width=300)
 st.sidebar.title("Filter Data")
 selected_year = st.sidebar.selectbox("Pilih Tahun", options=sorted(data["dteday"].dt.year.unique()))
 
